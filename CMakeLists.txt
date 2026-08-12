@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(clang-tutor)
 
+add_compile_options(-Wfatal-errors)
+add_compile_options(-Werror=return-type)
+
 #===============================================================================
 # 0. GET CLANG INSTALLATION DIR
 #===============================================================================
@@ -10,6 +13,9 @@ project(clang-tutor)
 # `Clang_ROOT`) are also supported. Visit CMake documentation for more details:
 #   https://cmake.org/cmake/help/latest/command/find_package.html
 # Use only _one_ of these variables.
+
+find_package(LLVM REQUIRED)
+find_package(Clang REQUIRED)
 
 if(DEFINED Clang_ROOT)
   set(CT_CLANG_PACKAGE_DIR "${Clang_ROOT}/../../..")
@@ -107,5 +113,3 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 #===============================================================================
 add_subdirectory(tests)
 add_subdirectory(src)
-
-
