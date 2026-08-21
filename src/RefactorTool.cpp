@@ -28,7 +28,7 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
   // Получаем SourceManager для проверки isInMainFile
   auto& sm = *result.SourceManager;
 
-  if (const auto* dtor = result.Nodes.getNodeAs<CXXDestructorDecl>("classDecl"))
+  if (const auto* dtor = result.Nodes.getNodeAs<CXXDestructorDecl>("nvDtorDecl"))
   {
     SourceLocation loc = dtor->getLocation();
 
@@ -72,15 +72,81 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
 
 // =============================================================================
 
-// TODO: необходимо реализовать обработку случая невиртуального деструктора
-void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl* Dtor,
-                                     DiagnosticsEngine& Diag,
-                                     SourceManager& SM)
+void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl* dtorDecl,
+                                     DiagnosticsEngine& diag,
+                                     SourceManager& sm)
 {
-  //Реализуйте Ваш код ниже
-  const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark,
+  const CXXRecordDecl* record = dtorDecl->getParent();
+  if (!record || !record->hasDefinition())
+  {
+    return;
+  }
+
+  // Skip if this is an implicit destructor (compiler-generated)
+  if (dtorDecl->isImplicit())
+  {
+    return;
+  }
+
+  bool hasDerivedClasses = false;
+
+  // Traverse the AST to find classes that derive from 'record'
+  for (auto* derivedRecord :
+    record->getASTContext().getTranslationUnitDecl()->decls())
+  {
+    if (auto* derivedClass = dyn_cast<CXXRecordDecl>(derivedRecord))
+    {
+      // Skip if it's the same class or doesn't have a definition
+      if (derivedClass == record || !derivedClass->hasDefinition())
+      {
+        continue;
+      }
+
+      // Get the definition if it's a forward declaration
+      const auto* def = derivedClass->getDefinition();
+      if (!def)
+      {
+        continue;
+      }
+
+      for (const auto& base : def->bases())
+      {
+        if (const auto* baseRecord = base.getType()->getAsCXXRecordDecl())
+        {
+          if (baseRecord->getCanonicalDecl() == record->getCanonicalDecl())
+          {
+            hasDerivedClasses = true;
+            // Страуструп разрешил.
+            goto _exit_for;
+          }
+        }
+      }
+    }
+  }
+
+_exit_for:
+
+  if (!hasDerivedClasses)
+  {
+    return; // No derived classes, skip
+  }
+
+  if (dtorDecl->isVirtual())
+  {
+    return; // Already virtual
+  }
+
+  SourceLocation insertLoc = dtorDecl->getBeginLoc();
+  if (insertLoc.isValid())
+  {
+    Rewrite.InsertText(insertLoc, "virtual ", true, true);
+  }
+
+  /*
+  const unsigned diagID = diag.getCustomDiagID(DiagnosticsEngine::Remark,
                                                "Объявлен деструктор");
-  Diag.Report(Dtor->getLocation(), DiagID);
+  diag.Report(dtorDecl->getLocation(), diagID);
+  */
 }
 
 // =============================================================================
@@ -90,10 +156,11 @@ void RefactorHandler::handle_miss_override(const CXXMethodDecl* Method,
                                            DiagnosticsEngine& Diag,
                                            SourceManager& SM)
 {
-  //Реализуйте Ваш код ниже
+  /*
   const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark,
                                                "Объявлен метод");
   Diag.Report(Method->getLocation(), DiagID);
+  */
 }
 
 // =============================================================================
@@ -103,10 +170,11 @@ void RefactorHandler::handle_crange_for(const VarDecl* LoopVar,
                                         DiagnosticsEngine& Diag,
                                         SourceManager& SM)
 {
-  // Реализуйте Ваш код ниже
+  /*
   const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark,
                                                "Объявлена переменная");
   Diag.Report(LoopVar->getLocation(), DiagID);
+  */
 }
 
 // =============================================================================
@@ -126,9 +194,10 @@ void RefactorHandler::handle_crange_for(const VarDecl* LoopVar,
 
 auto NvDtorMatcher()
 {
-  // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры
-  // для поиска невиртуальных деструкторов
-  return cxxDestructorDecl().bind("classDecl");
+  return cxxDestructorDecl(
+    unless(isVirtual()),
+    ofClass(cxxRecordDecl().bind("class"))
+  ).bind("nvDtorDecl");
 }
 
 // =============================================================================
@@ -194,13 +263,11 @@ bool CodeRefactorAction::BeginSourceFileAction(CompilerInstance& CI)
 
 void CodeRefactorAction::EndSourceFileAction()
 {
-  /*
   // Применяем изменения в файле.
   if (RewriterForCodeRefactor.overwriteChangedFiles())
   {
     llvm::errs() << "Error applying changes to files.\n";
   }
-  */
 }
 
 // =============================================================================
