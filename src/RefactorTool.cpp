@@ -41,7 +41,7 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
     handle_nv_dtor(dtor, diag, sm);
   }
 
-  if (const auto* method = result.Nodes.getNodeAs<CXXMethodDecl>("methodDecl");
+  if (const auto* method = result.Nodes.getNodeAs<CXXMethodDecl>("missingOverride");
       method && method->size_overridden_methods() > 0
   && !method->hasAttr<OverrideAttr>())
   {
@@ -151,15 +151,107 @@ _exit_for:
 
 // =============================================================================
 
-// TODO: необходимо реализовать обработку случая отсутствие override
-void RefactorHandler::handle_miss_override(const CXXMethodDecl* Method,
-                                           DiagnosticsEngine& Diag,
-                                           SourceManager& SM)
+void RefactorHandler::handle_miss_override(const CXXMethodDecl* method,
+                                           DiagnosticsEngine& diag,
+                                           SourceManager& sm)
 {
+  if (!method)
+  {
+    return;
+  }
+
+  // 1. Skip destructors
+  if (isa<CXXDestructorDecl>(method))
+  {
+    return;
+  }
+
+  // 2. Skip constructors
+  if (isa<CXXConstructorDecl>(method))
+  {
+    return;
+  }
+
+  // 3. Skip if it's a copy/move operator
+  if (method->isCopyAssignmentOperator() ||
+      method->isMoveAssignmentOperator())
+  {
+    return;
+  }
+
+  // 4. Skip if it's an implicit method
+  if (method->isImplicit())
+  {
+    return;
+  }
+
+  // 5. Check if it overrides anything
+  bool hasOverridden = false;
+  for (auto it = method->begin_overridden_methods();
+      it != method->end_overridden_methods(); ++it)
+  {
+    hasOverridden = true;
+    break;
+  }
+
+  if (!hasOverridden)
+  {
+    return;
+  }
+
+  // 6. Skip if it's not virtual
+  if (!method->isVirtual())
+  {
+    return;
+  }
+
+  // 7. Skip if the method is in a class with no base class
+  const CXXRecordDecl* record = method->getParent();
+  if (!record
+  || (!record->hasAnyDependentBases() && record->getNumBases() == 0))
+  {
+    return;
+  }
+
+  // 8. Skip if already has override
+  if (method->hasAttr<clang::OverrideAttr>())
+  {
+    return;
+  }
+
+  // 9. Check if the method has no body and is pure
+  if (method->isPureVirtual() && !method->getBody())
+  {
+    return;
+  }
+
+  // Insert "override" before the function body
+  SourceLocation insertLoc;
+
+  // Try to get the location before the body
+  if (method->getBody())
+  {
+    // If the method has a body, insert before it
+    insertLoc = method->getBody()->getBeginLoc();
+  }
+  else
+  {
+    // For declarations without body (e.g., in header files)
+    // Insert at the end of the declaration
+    insertLoc = method->getEndLoc();
+  }
+
+  if (insertLoc.isValid())
+  {
+    // Check if there's already a space before the insertion point
+    // We need to handle this carefully to avoid double spaces
+    Rewrite.InsertText(insertLoc, " override", true, true);
+  }
+
   /*
-  const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark,
+  const unsigned diagID = diag.getCustomDiagID(DiagnosticsEngine::Remark,
                                                "Объявлен метод");
-  Diag.Report(Method->getLocation(), DiagID);
+  diag.Report(method->getLocation(), diagID);
   */
 }
 
@@ -204,9 +296,12 @@ auto NvDtorMatcher()
 
 auto NoOverrideMatcher()
 {
-  // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры
-  // для поиска методов без override
-  return cxxMethodDecl().bind("methodDecl");
+  return cxxMethodDecl(
+    isOverride(),
+    unless(hasAttr(clang::attr::Override)),
+    // Exclude destructors by checking if the name doesn't start with "~"
+    unless(hasName("~"))
+  ).bind("missingOverride");
 }
 
 // =============================================================================
