@@ -15,6 +15,11 @@ using namespace clang;
 using namespace clang::ast_matchers;
 using namespace clang::tooling;
 
+const char* kNvDtorMatcherName          = "nvDtorDecl";
+const char* kMissingOverrideMatcherName = "missingOverride";
+const char* kLoopVarMatcherName         = "loopVar";
+const char* kForRangeMatcherName        = "forRange";
+
 static llvm::cl::OptionCategory ToolCategory("refactor-tool options");
 
 // =============================================================================
@@ -28,7 +33,8 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
   // Получаем SourceManager для проверки isInMainFile
   auto& sm = *result.SourceManager;
 
-  if (const auto* dtor = result.Nodes.getNodeAs<CXXDestructorDecl>("nvDtorDecl"))
+  if (const auto* dtor =
+    result.Nodes.getNodeAs<CXXDestructorDecl>(kNvDtorMatcherName))
   {
     SourceLocation loc = dtor->getLocation();
 
@@ -41,7 +47,8 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
     handle_nv_dtor(dtor, diag, sm);
   }
 
-  if (const auto* method = result.Nodes.getNodeAs<CXXMethodDecl>("missingOverride");
+  if (const auto* method =
+      result.Nodes.getNodeAs<CXXMethodDecl>(kMissingOverrideMatcherName);
       method && method->size_overridden_methods() > 0
   && !method->hasAttr<OverrideAttr>())
   {
@@ -56,7 +63,8 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
     handle_miss_override(method, diag, sm);
   }
 
-  if (const auto* loopVar = result.Nodes.getNodeAs<VarDecl>("VarDecl"))
+  if (const auto* loopVar =
+    result.Nodes.getNodeAs<VarDecl>(kLoopVarMatcherName))
   {
     SourceLocation loc = loopVar->getLocation();
 
@@ -257,15 +265,58 @@ void RefactorHandler::handle_miss_override(const CXXMethodDecl* method,
 
 // =============================================================================
 
-//todo: необходимо реализовать обработку случая отсутствие & в range-for
-void RefactorHandler::handle_crange_for(const VarDecl* LoopVar,
-                                        DiagnosticsEngine& Diag,
-                                        SourceManager& SM)
+void RefactorHandler::handle_crange_for(const VarDecl* loopVar,
+                                        DiagnosticsEngine& diag,
+                                        SourceManager& sm)
 {
+  if (!loopVar)
+  {
+    return;
+  }
+
+  // Skip if this is a reference type (shouldn't happen due to matcher, but
+  // check anyway)
+  if (loopVar->getType()->isReferenceType())
+  {
+    return;
+  }
+
+  // Skip const references (they're fine)
+  if (!loopVar->getType().isConstQualified())
+  {
+    return;
+  }
+
+  // Skip fundamental types (int, float, char, etc.)
+  QualType type = loopVar->getType();
+  if (type->isFundamentalType())
+  {
+    return;
+  }
+
+  // Get the actual declaration source range
+  SourceRange range = loopVar->getSourceRange();
+  SourceLocation startLoc = range.getBegin();
+
+  if (!startLoc.isValid())
+  {
+    return;
+  }
+
+  // Find where to insert the '&'
+  // We want to insert after the type name, before the variable name
+  // For "const auto x", we want "const auto& x"
+  // For "const CustomType x", we want "const CustomType& x"
+  SourceLocation insertLoc = loopVar->getLocation();
+
+  // Insert '&' before the variable name
+  // This will produce "const auto& x" or "const CustomType& x"
+  Rewrite.InsertText(insertLoc, "&", true, true);
+
   /*
-  const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark,
+  const unsigned diagID = diag.getCustomDiagID(DiagnosticsEngine::Remark,
                                                "Объявлена переменная");
-  Diag.Report(LoopVar->getLocation(), DiagID);
+  diag.Report(loopVar->getLocation(), diagID);
   */
 }
 
@@ -289,7 +340,7 @@ auto NvDtorMatcher()
   return cxxDestructorDecl(
     unless(isVirtual()),
     ofClass(cxxRecordDecl().bind("class"))
-  ).bind("nvDtorDecl");
+  ).bind(kNvDtorMatcherName);
 }
 
 // =============================================================================
@@ -301,16 +352,17 @@ auto NoOverrideMatcher()
     unless(hasAttr(clang::attr::Override)),
     // Exclude destructors by checking if the name doesn't start with "~"
     unless(hasName("~"))
-  ).bind("missingOverride");
+  ).bind(kMissingOverrideMatcherName);
 }
 
 // =============================================================================
 
 auto NoRefConstVarInRangeLoopMatcher()
 {
-  // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры
-  // для поиска range-for без &
-  return varDecl().bind("VarDecl");
+  return varDecl(
+    hasAncestor(cxxForRangeStmt().bind(kForRangeMatcherName)),
+    unless(hasType(referenceType()))
+  ).bind(kLoopVarMatcherName);
 }
 
 // =============================================================================
