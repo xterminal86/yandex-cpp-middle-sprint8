@@ -37,7 +37,7 @@ class RefactorHandler : public clang::ast_matchers::MatchFinder::MatchCallback
                                  clang::DiagnosticsEngine& Diag,
                                  clang::SourceManager& SM);
   private:
-    clang::Rewriter &Rewrite;
+    clang::Rewriter& Rewrite;
     // Для хранения позиций деструкторов, к которым уже добавлен virtual
     std::unordered_set<unsigned> virtualDtorLocations;
 };
@@ -71,6 +71,5 @@ class CodeRefactorAction : public clang::ASTFrontendAction
     virtual void EndSourceFileAction() override;
 
   private:
-    //clang::Rewriter RewriterForCodeRefactor;
-    std::unique_ptr<clang::Rewriter> RewriterForCodeRefactor;
+    clang::Rewriter RewriterForCodeRefactor;
 };

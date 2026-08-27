@@ -29,7 +29,6 @@ static llvm::cl::OptionCategory ToolCategory("refactor-tool options");
 // Мы проверяем тип совпадения по bind-именам и применяем рефакторинг.
 void RefactorHandler::run(const MatchFinder::MatchResult& result)
 {
-  /*
   auto& diag = result.Context->getDiagnostics();
 
   // Получаем SourceManager для проверки isInMainFile
@@ -78,7 +77,6 @@ void RefactorHandler::run(const MatchFinder::MatchResult& result)
 
     handle_crange_for(loopVar, diag, sm);
   }
-  */
 }
 
 // =============================================================================
@@ -374,9 +372,9 @@ auto NoRefConstVarInRangeLoopMatcher()
 ComplexConsumer::ComplexConsumer(Rewriter& Rewrite) : Handler(Rewrite)
 {
   // Создаем MatchFinder и добавляем матчеры.
-  //Finder.addMatcher(NvDtorMatcher(), &Handler);
-  //Finder.addMatcher(NoOverrideMatcher(), &Handler);
-  //Finder.addMatcher(NoRefConstVarInRangeLoopMatcher(), &Handler);
+  Finder.addMatcher(NvDtorMatcher(), &Handler);
+  Finder.addMatcher(NoOverrideMatcher(), &Handler);
+  Finder.addMatcher(NoRefConstVarInRangeLoopMatcher(), &Handler);
 }
 
 // =============================================================================
@@ -384,7 +382,7 @@ ComplexConsumer::ComplexConsumer(Rewriter& Rewrite) : Handler(Rewrite)
 // Метод HandleTranslationUnit вызывается для каждого файла.
 void ComplexConsumer::HandleTranslationUnit(ASTContext& Context)
 {
-  //Finder.matchAST(Context);
+  Finder.matchAST(Context);
 }
 
 // =============================================================================
@@ -393,26 +391,18 @@ std::unique_ptr<ASTConsumer>
 CodeRefactorAction::CreateASTConsumer(CompilerInstance& CI,
                                       StringRef file)
 {
-  //RewriterForCodeRefactor.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
-  //return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
-  //return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
-
-  // FIXME: debug
-  return std::make_unique<clang::ASTConsumer>();
+  RewriterForCodeRefactor.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
+  return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
 }
 
 // =============================================================================
 
 bool CodeRefactorAction::BeginSourceFileAction(CompilerInstance& CI)
 {
-  /*
   // Инициализируем Rewriter для рефакторинга.
   RewriterForCodeRefactor.setSourceMgr(CI.getSourceManager(),
                                        CI.getLangOpts());
   // Возвращаем true, чтобы продолжить обработку файла.
-  return true;
-  */
-
   return true;
 }
 
@@ -421,10 +411,10 @@ bool CodeRefactorAction::BeginSourceFileAction(CompilerInstance& CI)
 void CodeRefactorAction::EndSourceFileAction()
 {
   // Применяем изменения в файле.
-  //if (RewriterForCodeRefactor.overwriteChangedFiles())
-  //{
-  //  llvm::errs() << "Error applying changes to files.\n";
-  //}
+  if (RewriterForCodeRefactor.overwriteChangedFiles())
+  {
+    llvm::errs() << "Error applying changes to files.\n";
+  }
 }
 
 // =============================================================================
