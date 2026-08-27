@@ -71,5 +71,6 @@ class CodeRefactorAction : public clang::ASTFrontendAction
     virtual void EndSourceFileAction() override;
 
   private:
-    clang::Rewriter RewriterForCodeRefactor;
+    //clang::Rewriter RewriterForCodeRefactor;
+    std::unique_ptr<clang::Rewriter> RewriterForCodeRefactor;
 };

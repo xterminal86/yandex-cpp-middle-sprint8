@@ -395,7 +395,10 @@ CodeRefactorAction::CreateASTConsumer(CompilerInstance& CI,
 {
   //RewriterForCodeRefactor.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
   //return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
-  return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
+  //return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
+
+  // FIXME: debug
+  return std::make_unique<clang::ASTConsumer>();
 }
 
 // =============================================================================
@@ -418,10 +421,10 @@ bool CodeRefactorAction::BeginSourceFileAction(CompilerInstance& CI)
 void CodeRefactorAction::EndSourceFileAction()
 {
   // Применяем изменения в файле.
-  if (RewriterForCodeRefactor.overwriteChangedFiles())
-  {
-    llvm::errs() << "Error applying changes to files.\n";
-  }
+  //if (RewriterForCodeRefactor.overwriteChangedFiles())
+  //{
+  //  llvm::errs() << "Error applying changes to files.\n";
+  //}
 }
 
 // =============================================================================
