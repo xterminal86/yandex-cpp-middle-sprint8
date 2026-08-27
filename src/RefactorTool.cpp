@@ -253,7 +253,7 @@ void RefactorHandler::handle_miss_override(const CXXMethodDecl* method,
   {
     // Check if there's already a space before the insertion point
     // We need to handle this carefully to avoid double spaces
-    Rewrite.InsertText(insertLoc, " override", true, true);
+    Rewrite.InsertText(insertLoc, "override ", true, true);
   }
 
   /*
@@ -390,7 +390,6 @@ std::unique_ptr<ASTConsumer>
 CodeRefactorAction::CreateASTConsumer(CompilerInstance& CI,
                                       StringRef file)
 {
-  _file = file;
   RewriterForCodeRefactor.setSourceMgr(CI.getSourceManager(), CI.getLangOpts());
   return std::make_unique<ComplexConsumer>(RewriterForCodeRefactor);
 }

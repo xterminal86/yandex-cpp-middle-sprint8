@@ -72,5 +72,4 @@ class CodeRefactorAction : public clang::ASTFrontendAction
 
   private:
     clang::Rewriter RewriterForCodeRefactor;
-    clang::StringRef _file;
 };
