@@ -87,8 +87,8 @@ endif()
 # Compiler flags
 set(
   CMAKE_CXX_FLAGS
-  #"${CMAKE_CXX_FLAGS} -Wall -fdiagnostics-color=always -fsanitize=address"
-  "${CMAKE_CXX_FLAGS} -Wall -fdiagnostics-color=always"
+  "${CMAKE_CXX_FLAGS} -Wall -fdiagnostics-color=always -fsanitize=address"
+  #"${CMAKE_CXX_FLAGS} -Wall -fdiagnostics-color=always"
 )
 
 # LLVM/Clang is normally built without RTTI. Be consistent with that.
