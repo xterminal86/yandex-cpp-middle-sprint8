@@ -1,0 +1,16 @@
+
+ Performance counter stats for './perf_example':
+
+       39721580700      task-clock:u                     #    0.999 CPUs utilized
+                 0      context-switches:u               #    0.000 /sec
+                 0      cpu-migrations:u                 #    0.000 /sec
+            781384      page-faults:u                    #   19.672 K/sec
+       69622060575      instructions:u                   #    1.65  insn per cycle
+       42300598557      cycles:u                         #    1.065 GHz
+       10604504922      branches:u                       #  266.971 M/sec
+           1419444      branch-misses:u                  #    0.01% of all branches
+
+      39.745305774 seconds time elapsed
+
+      32.783067000 seconds user
+       6.936401000 seconds sys

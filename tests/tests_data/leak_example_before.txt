@@ -1,0 +1,22 @@
+=================================================================
+==22==ERROR: AddressSanitizer: new-delete-type-mismatch on 0x7be823be0010 in thread T0:
+  object passed to delete has wrong type:
+  size of the allocated type:   8 bytes;
+  size of the deallocated type: 1 bytes.
+    #0 0x7fc8250503fb in operator delete(void*, unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:155
+    #1 0x5609cf45e28c in main (/mnt/yandex-cpp-middle/yandex-cpp-middle-sprint8/tests/tests_data/a.out+0x128c) (BuildId: 33718a8ad557bff6941c05f9263a5a68009947ef)
+    #2 0x7fc824986577 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7fc82498663a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x5609cf45e164 in _start (/mnt/yandex-cpp-middle/yandex-cpp-middle-sprint8/tests/tests_data/a.out+0x1164) (BuildId: 33718a8ad557bff6941c05f9263a5a68009947ef)
+
+0x7be823be0010 is located 0 bytes inside of 8-byte region [0x7be823be0010,0x7be823be0018)
+allocated by thread T0 here:
+    #0 0x7fc82504f2db in operator new(unsigned long) ../../../../src/libsanitizer/asan/asan_new_delete.cpp:86
+    #1 0x5609cf45e243 in main (/mnt/yandex-cpp-middle/yandex-cpp-middle-sprint8/tests/tests_data/a.out+0x1243) (BuildId: 33718a8ad557bff6941c05f9263a5a68009947ef)
+    #2 0x7fc824986577 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7fc82498663a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x5609cf45e164 in _start (/mnt/yandex-cpp-middle/yandex-cpp-middle-sprint8/tests/tests_data/a.out+0x1164) (BuildId: 33718a8ad557bff6941c05f9263a5a68009947ef)
+
+SUMMARY: AddressSanitizer: new-delete-type-mismatch (/mnt/yandex-cpp-middle/yandex-cpp-middle-sprint8/tests/tests_data/a.out+0x128c) (BuildId: 33718a8ad557bff6941c05f9263a5a68009947ef) in main
+==22==HINT: if you don't care about these errors you may set ASAN_OPTIONS=new_delete_type_mismatch=0
+==22==ABORTING

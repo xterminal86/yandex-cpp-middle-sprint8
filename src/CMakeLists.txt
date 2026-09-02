@@ -34,7 +34,13 @@ target_include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/../include"
 )
 
-target_link_libraries(refactor_tool PRIVATE clangTooling clangBasic clangASTMatchers)
+target_link_libraries(
+  refactor_tool
+  PRIVATE
+  clangTooling
+  clangBasic
+  clangASTMatchers
+)
 
 
 # # CONFIGURE THE PLUGIN LIBRARIES

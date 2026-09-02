@@ -1,16 +1,16 @@
-#include <vector>  
+#include <vector>
 #include <string>
 
-class Base {  
-public:  
+class Base {
+public:
   virtual void method() = 0;
-  ~Base() {}
-};   
+  virtual ~Base() {}
+};
 
-class Derived : public Base {  
-public:  
-  virtual void method() {};
-  virtual ~Derived() {} 
+class Derived : public Base {
+public:
+  virtual void method() override {};
+  virtual ~Derived() {}
 };
 
 class MyType {
@@ -20,11 +20,11 @@ public:
     MyType(int i, const std::string& n) : id(i), name(n) {}
 };
 
-void foo() {  
-  std::vector<int> v1;  
+void foo() {
+  std::vector<int> v1;
   for (const auto x1 : v1) {
-  }  
-  std::vector<MyType> vec = {{1, "obj1"}, {2, "obj2"}, {3, "obj3"}};
-  for (const auto x12 : vec) { 
   }
-}  
+  std::vector<MyType> vec = {{1, "obj1"}, {2, "obj2"}, {3, "obj3"}};
+  for (const auto & x12 : vec) {
+  }
+}
